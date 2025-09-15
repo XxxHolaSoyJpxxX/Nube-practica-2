@@ -12,6 +12,7 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.888.0",
     "express": "^5.1.0",
     "multer": "^2.0.2",
     "node-ts": "^8.0.8"
