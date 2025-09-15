@@ -8,8 +8,13 @@ import stream from "stream";
 
 const router = Router();
 const BUCKET_NAME = 'practica-2-745730';
-const REGION = 'us-east-1';
-const s3Client = new S3Client({ region: REGION });
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+  }
+});
 const upload = multer({ storage: multer.memoryStorage() });
 
 

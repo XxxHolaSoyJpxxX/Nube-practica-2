@@ -3,7 +3,8 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import s3Routes from "./routes/s3Routes"; 
-
+import dotenv from "dotenv";
+dotenv.config();
 const app = express();
 const PORT = 3000;
 

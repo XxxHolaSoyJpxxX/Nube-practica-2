@@ -35,3 +35,5 @@ out/
 
 # Optional npm cache
 .npm
+.env
+.uploads
