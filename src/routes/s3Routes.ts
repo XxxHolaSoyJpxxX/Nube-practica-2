@@ -5,7 +5,8 @@ import { Upload } from '@aws-sdk/lib-storage';
 import * as fs from 'fs';
 import * as path from 'path';
 import stream from "stream";
-
+import dotenv from "dotenv";
+dotenv.config();
 const router = Router();
 const BUCKET_NAME = 'practica-2-745730';
 const s3Client = new S3Client({

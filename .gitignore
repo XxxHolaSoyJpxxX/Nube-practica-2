@@ -20,7 +20,7 @@ out/
 *.tsbuildinfo
 
 # Environment variables
-.env
+
 
 # IDE/editor settings
 .vscode/
