@@ -35,6 +35,8 @@ app.get("/local/archivos/:nombre", (req, res) => {
 });
 
 
+
+app.use(express.json());
 app.use("/object-storage", s3Routes);
 
 
