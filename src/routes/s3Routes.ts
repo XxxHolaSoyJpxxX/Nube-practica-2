@@ -9,6 +9,10 @@ import dotenv from "dotenv";
 dotenv.config();
 const router = Router();
 const BUCKET_NAME = 'practica-2-745730';
+console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID ? "SET" : "NOT SET");
+console.log("AWS_SECRET_ACCESS_KEY:", process.env.AWS_SECRET_ACCESS_KEY ? "SET" : "NOT SET");
+console.log("BUCKET_NAME:", process.env.BUCKET_NAME);
+
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
   credentials: {
