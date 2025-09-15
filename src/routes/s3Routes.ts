@@ -1,14 +1,49 @@
 import { Router } from "express";
 import multer from "multer";
-import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+import * as fs from 'fs';
+import * as path from 'path';
 import stream from "stream";
 
 const router = Router();
-const BUCKET_NAME = "practica-2-123456";
-const s3Client = new S3Client({ region: "us-east-1" });
+const BUCKET_NAME = 'practica-2-745730';
+const REGION = 'us-east-1';
+const s3Client = new S3Client({ region: REGION });
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Listar archivos
+
+const uploadFileToS3 = async (bucketName: string, key: string, filePath: string, numExp: string): Promise<void> => {
+  const fileStream = fs.createReadStream(filePath);
+  const parallelUploader = new Upload({
+    client: s3Client,
+    params: {
+      Bucket: bucketName,
+      Key: key,
+      Body: fileStream,
+      Metadata: { 'expediente': numExp },
+    },
+  });
+  await parallelUploader.done();
+};
+
+const downloadFileFromS3 = async (bucketName: string, key: string, downloadPath: string): Promise<void> => {
+  const command = new GetObjectCommand({ Bucket: bucketName, Key: key });
+  const response = await s3Client.send(command);
+  if (response.Body) {
+    const writableStream = fs.createWriteStream(downloadPath);
+    (response.Body as stream.Readable).pipe(writableStream);
+    await new Promise<void>(resolve => writableStream.on('finish', () => resolve()));
+  } else {
+    throw new Error('No se pudo descargar el archivo, Body vacío.');
+  }
+};
+
+const deleteFileFromS3 = async (bucketName: string, key: string): Promise<void> => {
+  await s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }));
+};
+
+
 router.get("/archivos", async (req, res) => {
   try {
     const data = await s3Client.send(new ListObjectsV2Command({ Bucket: BUCKET_NAME }));
@@ -17,36 +52,36 @@ router.get("/archivos", async (req, res) => {
   } catch (err) { res.status(500).json({ error: err }); }
 });
 
-// Subir archivo
+
 router.post("/archivos", upload.single("archivo"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Archivo faltante" });
+
+  const tempPath = path.join(__dirname, "../uploads", req.file.originalname);
+  if (!fs.existsSync(path.dirname(tempPath))) fs.mkdirSync(path.dirname(tempPath));
+  fs.writeFileSync(tempPath, req.file.buffer);
+
   try {
-    if (!req.file) return res.status(400).json({ error: "Archivo faltante" });
-
-    await s3Client.send(new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: req.file.originalname,
-      Body: req.file.buffer,
-      Metadata: { "x-amz-meta-expediente": "745730" }
-    }));
-
-    res.status(201).json({ mensaje: "Archivo subido", archivo: req.file.originalname });
+    await uploadFileToS3(BUCKET_NAME, req.file.originalname, tempPath, '745730');
+    fs.unlinkSync(tempPath);
+    res.status(201).json({ mensaje: "Archivo subido a S3", archivo: req.file.originalname });
   } catch (err) { res.status(500).json({ error: err }); }
 });
 
-// Descargar archivo
 router.get("/archivos/:nombre", async (req, res) => {
   const { nombre } = req.params;
+  const downloadPath = path.join(__dirname, "../downloads", nombre);
+  if (!fs.existsSync(path.dirname(downloadPath))) fs.mkdirSync(path.dirname(downloadPath));
+
   try {
-    const data = await s3Client.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: nombre }));
-    (data.Body as stream.Readable).pipe(res);
-  } catch (err) { res.status(404).json({ error: "Archivo no encontrado" }); }
+    await downloadFileFromS3(BUCKET_NAME, nombre, downloadPath);
+    res.download(downloadPath, nombre, () => fs.unlinkSync(downloadPath));
+  } catch (err) { res.status(404).json({ error: "Archivo no encontrado en S3" }); }
 });
 
-// Eliminar archivo
 router.delete("/archivos/:nombre", async (req, res) => {
   const { nombre } = req.params;
   try {
-    await s3Client.send(new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: nombre }));
+    await deleteFileFromS3(BUCKET_NAME, nombre);
     res.json({ mensaje: "Archivo eliminado", archivo: nombre });
   } catch (err) { res.status(500).json({ error: err }); }
 });

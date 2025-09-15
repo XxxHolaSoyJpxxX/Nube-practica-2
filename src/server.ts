@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
-import s3Routes from "./routes/s3Routes";
+import s3Routes from "./routes/s3Routes"; 
 
 const app = express();
 const PORT = 3000;
@@ -19,10 +19,12 @@ app.get("/local/archivos", (req, res) => {
   res.json({ archivos: files });
 });
 
+
 app.post("/local/archivos", localUpload.single("archivo"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "Archivo faltante" });
   res.status(201).json({ mensaje: "Archivo subido localmente", archivo: req.file.filename });
 });
+
 
 app.get("/local/archivos/:nombre", (req, res) => {
   const { nombre } = req.params;
@@ -31,7 +33,9 @@ app.get("/local/archivos/:nombre", (req, res) => {
   res.download(filePath);
 });
 
+
 app.use("/object-storage", s3Routes);
+
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Servidor corriendo en http://0.0.0.0:${PORT}`);
