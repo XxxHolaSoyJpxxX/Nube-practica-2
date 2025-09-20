@@ -8,24 +8,30 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, file.originalname);
+  },
+});
 
-const localUpload = multer({ dest: "uploads/" });
-
+const localUpload = multer({ storage });
 
 app.get("/local/archivos", (req, res) => {
   const dir = path.join(__dirname, "uploads");
   if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-
   const files = fs.readdirSync(dir);
   res.json({ archivos: files });
 });
-
 
 app.post("/local/archivos", localUpload.single("archivo"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "Archivo faltante" });
   res.status(201).json({ mensaje: "Archivo subido localmente", archivo: req.file.filename });
 });
-
 
 app.get("/local/archivos/:nombre", (req, res) => {
   const { nombre } = req.params;
@@ -34,11 +40,8 @@ app.get("/local/archivos/:nombre", (req, res) => {
   res.download(filePath);
 });
 
-
-
 app.use(express.json());
 app.use("/object-storage", s3Routes);
-
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Servidor corriendo en http://0.0.0.0:${PORT}`);
